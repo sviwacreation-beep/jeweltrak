@@ -267,7 +267,7 @@ export const Returns: React.FC<ReturnsProps> = ({ distributors, products, distri
                                 object-fit: cover !important;
                                 width: 100% !important;
                                 height: 100% !important;
-                                transform: scaleX(-1) !important;
+
                             }
                         `}</style>
                         <div id="return-reader" className="w-full h-full"></div>

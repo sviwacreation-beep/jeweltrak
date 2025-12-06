@@ -4,6 +4,24 @@ import { Product } from '../types';
 import { Plus, Trash2, Printer, Loader2, Wand2, Check, X, Upload, Image as ImageIcon, Search, Pencil, ShoppingBag, AlertTriangle, AlertCircle, Camera, FileDown } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateProductDescription } from '../services/geminiService';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Remove: "data:application/pdf;base64,"
+      const base64 = dataUrl.split(',')[1];
+      resolve(base64);
+    };
+    reader.readAsDataURL(blob);
+  });
+};
+
 
 interface InventoryProps {
   products: Product[];
@@ -273,15 +291,25 @@ export const Inventory: React.FC<InventoryProps> = ({ products, onAddProduct, on
     setType(categories[0]);
   };
 
+
   const openPrintModal = (product: Product) => {
     setPrintingProduct(product);
   };
 
-  const handlePrint = () => {
-    setTimeout(() => {
-        window.print();
-    }, 100);
-  };
+const handlePrint = async () => {
+  // If running inside Capacitor native app (APK)
+  if (Capacitor.isNativePlatform()) {
+    // On native, we’ll reuse the PDF generation + share flow
+    await handleDownloadPdf();
+    return;
+  }
+
+  // On normal web (browser): use regular print
+  setTimeout(() => {
+    window.print();
+  }, 100);
+};
+
 
   const handleDownloadPdf = async () => {
     if (!printingProduct) return;
@@ -342,19 +370,44 @@ export const Inventory: React.FC<InventoryProps> = ({ products, onAddProduct, on
         });
         
         const imgData = canvas.toDataURL('image/png');
-        
-        // @ts-ignore
-        const { jsPDF } = window.jspdf;
-        // Label size is 400px x 180px
-        const pdf = new jsPDF({
-            orientation: 'landscape',
-            unit: 'px',
-            format: [400, 180],
-            hotfixes: ['px_scaling']
+
+      // @ts-ignore
+      const { jsPDF } = window.jspdf;
+      // Label size is 400px x 180px
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [400, 180],
+        hotfixes: ['px_scaling']
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 400, 180);
+
+      // Use a consistent filename
+      const fileName = `${printingProduct.sku}-label.pdf`;
+
+      if (Capacitor.isNativePlatform()) {
+        // 👉 Native (APK): save file and open share sheet
+        const pdfBlob = pdf.output('blob');
+        const base64Data = await blobToBase64(pdfBlob);
+
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Documents,
         });
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, 400, 180);
-        pdf.save(`${printingProduct.sku}-label.pdf`);
+
+        await Share.share({
+          title: 'Product Label',
+          text: 'Share or print this product label.',
+          url: result.uri,
+          dialogTitle: 'Share product label',
+        });
+      } else {
+        // 👉 Web: fallback to normal save
+        pdf.save(fileName);
+      }
+
         
     } catch (e) {
         console.error(e);
@@ -707,6 +760,7 @@ export const Inventory: React.FC<InventoryProps> = ({ products, onAddProduct, on
             </div>
         </div>
       )}
+      
 
       {/* Delete Confirmation Modal */}
       {productToDelete && (

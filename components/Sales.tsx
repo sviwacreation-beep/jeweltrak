@@ -374,7 +374,7 @@ export const Sales: React.FC<SalesProps> = ({ sales, products, distributors, dis
                          </button>
                      ) : (
                          <>
-                            <style>{`#sales-reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; transform: scaleX(-1) !important; }`}</style>
+                            <style>{`#sales-reader video { object-fit: cover !important; width: 100% !important; height: 100% !important}`}</style>
                             <div id="sales-reader" className="w-full h-full"></div>
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="w-56 h-56 border-2 border-white/50 rounded-lg relative shadow-[0_0_0_9999px_rgba(0,0,0,0.3)]">

@@ -275,14 +275,14 @@ export const Scanner: React.FC<ScannerProps> = ({ products, distributors, onTran
                 ) : (
                     // We use inline style to force override library styles
                     <div className="bg-black rounded-xl overflow-hidden shadow-lg border-4 border-slate-800 relative w-full max-w-sm mx-auto aspect-[3/4]">
-                        <style>{`
-                            #reader video {
-                                object-fit: cover !important;
-                                width: 100% !important;
-                                height: 100% !important;
-                                transform: scaleX(-1) !important;
-                            }
-                        `}</style>
+                    <style>{`
+                    #reader video {
+                        object-fit: cover !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                    }
+                    `}</style>
+
                         <div id="reader" className="w-full h-full"></div>
                         
                         {/* Visual Viewfinder Overlay - Square Box */}

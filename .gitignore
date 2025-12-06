@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local Netlify folder
+.netlify
+
+capacitor.config.json
+
+capacitor.config.ts
+
+android
+
+android/

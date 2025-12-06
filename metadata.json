@@ -1,0 +1,7 @@
+{
+  "name": "JewelTrack Pro",
+  "description": "Inventory management system for imitation jewelry businesses. Features QR code generation for products, distributor management, and QR scanning for stock transfers.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

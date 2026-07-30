@@ -13,6 +13,87 @@ import { Product, Distributor, DistributorStock, SaleRecord, PayoutRecord } from
 
 // --- LocalStorage Helpers (Offline Mode) ---
 
+const toNumber = (value: unknown, fallback = 0): number => {
+  const normalized = typeof value === "string" ? value.trim() : value;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toStringValue = (value: unknown, fallback = ""): string => {
+  return typeof value === "string" ? value : fallback;
+};
+
+const normalizeProduct = (item: any): Product => ({
+  id: toStringValue(item?.id),
+  sku: toStringValue(item?.sku),
+  name: toStringValue(item?.name),
+  description: toStringValue(item?.description),
+  price: toNumber(item?.price),
+  cost: toNumber(item?.cost),
+  imageUrl: toStringValue(item?.imageUrl),
+  stock: toNumber(item?.stock),
+  createdAt: toStringValue(item?.createdAt),
+});
+
+const normalizeDistributor = (item: any): Distributor => ({
+  id: toStringValue(item?.id),
+  name: toStringValue(item?.name),
+  phone: toStringValue(item?.phone),
+  email: toStringValue(item?.email),
+  location: toStringValue(item?.location),
+  joinedAt: toStringValue(item?.joinedAt),
+});
+
+const normalizeDistributorStock = (item: any): DistributorStock => ({
+  id: toStringValue(item?.id),
+  distributorId: toStringValue(item?.distributorId),
+  productId: toStringValue(item?.productId),
+  quantity: toNumber(item?.quantity),
+  lastUpdated: toStringValue(item?.lastUpdated),
+});
+
+const normalizeSale = (item: any): SaleRecord => ({
+  id: toStringValue(item?.id),
+  productId: toStringValue(item?.productId),
+  productName: toStringValue(item?.productName),
+  quantity: toNumber(item?.quantity),
+  salePrice: toNumber(item?.salePrice),
+  totalAmount: toNumber(item?.totalAmount),
+  date: toStringValue(item?.date),
+  soldByDistributorId: item?.soldByDistributorId == null ? null : toStringValue(item?.soldByDistributorId),
+  commissionAmount: item?.commissionAmount == null ? undefined : toNumber(item?.commissionAmount),
+  costPriceSnapshot: item?.costPriceSnapshot == null ? undefined : toNumber(item?.costPriceSnapshot),
+});
+
+const normalizePayout = (item: any): PayoutRecord => ({
+  id: toStringValue(item?.id),
+  distributorId: toStringValue(item?.distributorId),
+  amount: toNumber(item?.amount),
+  date: toStringValue(item?.date),
+  note: item?.note == null ? undefined : toStringValue(item?.note),
+  type:
+    item?.type === "ADJUSTMENT_ADD" || item?.type === "ADJUSTMENT_DEDUCT" || item?.type === "PAYMENT"
+      ? item.type
+      : "PAYMENT",
+});
+
+const normalizeCollectionData = (collectionName: string, data: any[]) => {
+  switch (collectionName) {
+    case "products":
+      return data.map(normalizeProduct);
+    case "distributors":
+      return data.map(normalizeDistributor);
+    case "distributorStocks":
+      return data.map(normalizeDistributorStock);
+    case "sales":
+      return data.map(normalizeSale);
+    case "payouts":
+      return data.map(normalizePayout);
+    default:
+      return data;
+  }
+};
+
 const getLocal = (key: string) => {
   try {
     return JSON.parse(localStorage.getItem(key) || '[]');
@@ -40,8 +121,8 @@ export const subscribeToCollection = (collectionName: string, callback: (data: a
     try {
       const q = query(collection(db, collectionName));
       return onSnapshot(q, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ ...doc.data() }));
-        callback(data);
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(normalizeCollectionData(collectionName, data));
       }, (error) => {
         console.error(`Error subscribing to ${collectionName}:`, error);
         callback([]);
@@ -54,11 +135,11 @@ export const subscribeToCollection = (collectionName: string, callback: (data: a
 
   // 2. Offline Mode (LocalStorage)
   const data = getLocal(collectionName);
-  callback(data);
+  callback(normalizeCollectionData(collectionName, data));
 
   const handleLocalUpdate = () => {
     const updatedData = getLocal(collectionName);
-    callback(updatedData);
+    callback(normalizeCollectionData(collectionName, updatedData));
   };
 
   window.addEventListener(`local-update-${collectionName}`, handleLocalUpdate);
